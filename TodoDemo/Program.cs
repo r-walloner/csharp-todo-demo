@@ -36,6 +36,8 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
+builder.Services.AddHealthChecks().AddDbContextCheck<TodoDbContext>(name: "database", tags: ["ready"]);
+
 var app = builder.Build();
 
 
@@ -53,5 +55,17 @@ if (app.Environment.IsDevelopment())
 // app.UseAuthorization();
 
 app.MapControllers();
+
+// Add health check endpoints for "application live" and "application ready to server requests"
+app.MapHealthChecks("/health/live", new()
+{
+    // Don't perform any checks, just return OK as soon as the app is running
+    Predicate = (check) => false
+});
+app.MapHealthChecks("/health/ready", new()
+{
+    // Only return OK if all checks with tag "ready" are healthy (e.g., database)
+    Predicate = (check) => check.Tags.Contains("ready")
+});
 
 app.Run();
