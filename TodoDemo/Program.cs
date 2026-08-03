@@ -1,22 +1,46 @@
+using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
+using TodoDemo.Database;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+
+// ---- Services ----
+// ------------------
+
+// Configure db context
+var connectionString = builder.Configuration.GetConnectionString("TodoDb");
+builder.Services.AddDbContext<TodoDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+
+    if (builder.Environment.IsDevelopment())
+    {
+        // detailed errors in development mode
+        options.EnableDetailedErrors();
+        options.EnableSensitiveDataLogging();
+    }
+});
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
+// ---- HTTP request pipeline ----
+// -------------------------------
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
-app.UseAuthorization();
+// app.UseAuthorization();
 
 app.MapControllers();
 
