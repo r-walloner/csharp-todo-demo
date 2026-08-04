@@ -41,6 +41,24 @@ builder.Services.AddHealthChecks().AddDbContextCheck<TodoDbContext>(name: "datab
 var app = builder.Build();
 
 
+// ---- Migration -----
+// --------------------
+
+if (args.Contains("--migrate"))
+{
+    // Run database migrations and exit if the --migrate argument is passed to the app.
+    // This is used by the one-shot container that runs migrations before starting the main app container.
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<TodoDbContext>();
+    
+    app.Logger.LogInformation("Migrating database...");
+    await dbContext.Database.MigrateAsync();
+    app.Logger.LogInformation("Database migration complete.");
+
+    return;
+}
+
+
 // ---- HTTP request pipeline ----
 // -------------------------------
 
