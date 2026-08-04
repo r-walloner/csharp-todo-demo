@@ -132,7 +132,7 @@ public class TodoItemsController(TodoDbContext db, ILogger<TodoItemsController> 
         if (item is null)
             return NotFound();
 
-        if (request.Title is not null)
+        if (request.Title is not null && !request.Title.IsWhiteSpace())
             item.Title = request.Title;
         if (request.Notes is not null)
             item.Notes = request.Notes;
