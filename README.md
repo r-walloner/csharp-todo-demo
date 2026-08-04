@@ -21,7 +21,7 @@ docker compose up db --detach
 dotnet run --project TodoDemo
 ```
 
-## Migrations
+## Migrations and Seeding
 
 Migrations live in `TodoDemo/Database/Migrations` (use `--output-dir Database/Migrations` when generating new ones).
 
@@ -29,3 +29,12 @@ The app does not apply migrations automatically at startup.
 Instead, `dotnet TodoDemo.dll --migrate` runs the migrations then exits.
 This is the entrypoint of the one-shot `migrate` service in `compose.yml`.
 
+The `seed.sh` script can be used to populate the DB with example data through the API.
+```bash
+chmod +x seed.sh && ./seed.sh 
+```
+On non-UNIX systems, the script can be run through a container.
+```bash
+docker run --rm --network host -v "$PWD/seed.sh:/seed.sh:ro" \
+    buildpack-deps:curl bash /seed.sh
+```
