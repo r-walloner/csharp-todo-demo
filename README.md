@@ -38,3 +38,63 @@ On non-UNIX systems, the script can be run through a container.
 docker run --rm --network host -v "$PWD/seed.sh:/seed.sh:ro" \
     buildpack-deps:curl bash /seed.sh
 ```
+
+## Deploying to Scaleway
+
+> **Note:** everything from here on out is work in progress!
+
+1. Create a PostgeSQL database with the desired settings.
+For this demo, the smallest instance with 5 GB storage is plenty.
+
+Verify connection from local machine
+
+TODO: Connect with TSL certificate verification. The certificate can be downloaded from the Scaleway console.
+
+2. Attach private network to the database
+note the IP configuration
+
+Restrict access to the private network only by removing the `0.0.0.0/0` rule from the allowed IPs.
+
+2. Create a container registry or use an existing one
+- Sign into the registry on local machine using existing or new API token
+
+3. Build and push image to container registry
+```
+docker compose build
+docker tag todo-demo:local rg.fr-par.scw.cloud/robin-todo-demo-cr/todo-demo:0.1.0
+docker push rg.fr-par.scw.cloud/robin-todo-demo-cr/todo-demo:0.1.0
+```
+Use immutable version tags (0.1.0, 0.1.1), not latest. Scaleway recommends this explicitly, and it's what makes a rollback a matter of pointing the container at the previous tag.
+
+4. Create Serverless Container
+Create a new Container in an existing or new namespace.
+
+Resources
+- Memory: 1024 MB
+- vCPU: 1000 mvCPU (1 vCPU)
+More vCPU during startup measurably reduces cold start, and .NET's JIT is startup-heavy. You can dial it down after you've measured.
+
+Scaling
+- Min scale: 0 for now (switch to 1 in §22 if cold starts annoy you)
+- Max scale: 3
+- Scaling policy: concurrent requests, threshold 20
+
+Advanced
+- Sandbox: v2
+- Request timeout: 60s
+- Privacy: Public
+
+TODO: fine-tune scaling parameters based on application load data
+
+Environment variables
+- ASPNETCORE_ENVIRONMENT=Production
+- ...other application config
+
+Secrets
+- ConnectionStrings__TodoDb="Host=<endpoint-host>;Port=<port>;Database=<database>;Username=<user>;Password=<password>;SSL Mode=REquire;Maximum Pool Size=10"
+TODO: SSL verification
+TODO: tune maximum pool size based on scaleway manages PostgreSQL instance
+
+Attach to the same private network as the database. Make sure to use the private IP of the database in the connection string.
+
+Configure health check to use the `/health/ready` HTTP endpoint.
