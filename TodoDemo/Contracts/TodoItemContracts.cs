@@ -32,8 +32,10 @@ public record CreateTodoItemRequest
 
 public record UpdateTodoItemRequest
 {
+    [MaxLength(200)]
     public string? Title { get; init; }
 
+    [MaxLength(500)]
     public string? Notes { get; init; }
 
     [EnumDataType(typeof(TodoPriority))]
