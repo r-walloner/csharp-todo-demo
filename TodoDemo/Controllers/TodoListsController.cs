@@ -162,7 +162,7 @@ public class TodoListsController(TodoDbContext db, ILogger<TodoListsController> 
             todoList.Title,
             todoList.Description,
             todoList.Items.Count,
-            todoList.Items.Count(i => i.IsCompleted),
+            todoList.Items.Count(i => !i.IsCompleted),
             todoList.CreatedAt,
             todoList.UpdatedAt
         );
