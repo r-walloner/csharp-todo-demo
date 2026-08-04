@@ -1,12 +1,44 @@
 services:
+  app:
+    build: .
+    image: todo-demo:local
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PORT: 5000 # The port the app listens to within the container
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__TodoDb: "Host=db;Port=5432;Database=tododb;Username=todo;Password=todo"
+    ports:
+      - "8080:5000"
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -fsS http://127.0.0.1:5000/health/ready || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    # One-shot container to run database migrations before starting the main api container.
+    build: .
+    image: todo-demo:local
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production # migrations always run in production mode
+      ConnectionStrings__TodoDb: "Host=db;Port=5432;Database=tododb;Username=todo;Password=todo"
+    command: ["dotnet", "TodoDemo.dll", "--migrate"]
+    restart: "no" # one-shot container, don't restart
+
   db:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: todo
       POSTGRES_PASSWORD: todo
       POSTGRES_DB: tododb
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -14,7 +46,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-  
+
   db-admin:
     image: adminer:latest
     ports:
