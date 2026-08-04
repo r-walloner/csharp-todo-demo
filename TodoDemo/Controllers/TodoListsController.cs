@@ -28,6 +28,7 @@ public class TodoListsController(TodoDbContext db, ILogger<TodoListsController> 
         var totalCount = await db.TodoLists.CountAsync(cancellationToken);
 
         var items = await db.TodoLists
+            .Include(l => l.Items)
             .OrderByDescending(l => l.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -53,6 +54,7 @@ public class TodoListsController(TodoDbContext db, ILogger<TodoListsController> 
     )
     {
         var todoList = await db.TodoLists
+            .Include(l => l.Items)
             .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
 
         if (todoList is null)
