@@ -72,6 +72,10 @@ if (app.Environment.IsDevelopment())
 
 // app.UseAuthorization();
 
+// Serve the static UI from wwwroot ("/" -> wwwroot/index.html).
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapControllers();
 
 // Add health check endpoints for "application live" and "application ready to server requests"

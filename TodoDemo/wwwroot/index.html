@@ -1,0 +1,171 @@
+<!doctype html>
+<!-- AI-GENERATED: the whole UI under wwwroot/ was written by an AI coding
+     assistant. Review before relying on it. -->
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'">
+  <title>Todos</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/app.css">
+  <script type="module" src="/js/main.js"></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- One app bar for both views. #app-title is also the focus target after a route change. -->
+  <header class="appbar">
+    <div class="appbar-inner">
+      <!-- The two leading controls are the same 44x44 box and exactly one is
+           shown at a time, so the title never shifts between views. Both use a
+           stroked SVG rather than a text glyph, which no font centres reliably. -->
+      <span class="applead" id="app-mark" aria-hidden="true">
+        <svg class="icon icon-mark" viewBox="0 0 24 24" focusable="false">
+          <path d="M5 12.5 9.5 17 19 7.5" />
+        </svg>
+      </span>
+      <a class="applead" id="back-link" href="#/" aria-label="All lists" hidden>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M14.5 5.5 8 12l6.5 6.5" />
+        </svg>
+      </a>
+      <h1 class="appbar-title" id="app-title" tabindex="-1">Todos</h1>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+
+    <!-- ---------- Overview ---------- -->
+    <section class="view" id="view-lists" hidden>
+      <ul class="cards" id="lists-rows"></ul>
+      <div class="section-foot" id="lists-foot"></div>
+    </section>
+
+    <!-- ---------- List detail ---------- -->
+    <section class="view" id="view-detail" hidden>
+
+      <!-- persistent: only the description text and hidden flags change, so a
+           re-render can never blow away focus sitting on Edit or Delete -->
+      <div class="detail-head" id="detail-head">
+        <p class="detail-desc" id="detail-desc" hidden></p>
+        <div class="detail-actions">
+          <button class="linkbtn" type="button" data-action="edit-list">Edit</button>
+          <span class="sep" aria-hidden="true">·</span>
+          <button class="linkbtn linkbtn-danger" type="button" data-action="delete-list">Delete list</button>
+        </div>
+      </div>
+
+      <!-- persistent: holds inputs, so it must survive re-renders -->
+      <form class="editor" id="form-edit-list" hidden>
+        <label class="field-label" for="edit-list-title">Title</label>
+        <input class="field" id="edit-list-title" type="text" maxlength="200" required autocomplete="off"
+          autocapitalize="sentences">
+        <label class="field-label" for="edit-list-desc">Description</label>
+        <textarea class="field" id="edit-list-desc" rows="2" maxlength="500" autocapitalize="sentences"></textarea>
+        <div class="editor-actions">
+          <button class="btn btn-primary" type="submit">Save</button>
+          <button class="btn btn-ghost" type="button" data-action="cancel-list-edit">Cancel</button>
+        </div>
+      </form>
+
+      <fieldset class="segmented" id="detail-filter">
+        <legend class="sr-only">Show items</legend>
+        <div class="seg">
+          <input type="radio" name="filter" id="filter-all" value="all" checked>
+          <span>All</span>
+        </div>
+        <div class="seg">
+          <input type="radio" name="filter" id="filter-open" value="open">
+          <span>Open</span>
+        </div>
+        <div class="seg">
+          <input type="radio" name="filter" id="filter-done" value="done">
+          <span>Done</span>
+        </div>
+      </fieldset>
+
+      <div class="section" id="detail-open-section">
+        <h2 class="section-title" id="detail-open-label">Open</h2>
+        <ul class="rows" id="detail-open-rows"></ul>
+        <div class="section-foot" id="detail-open-foot"></div>
+      </div>
+
+      <div class="section" id="detail-completed">
+        <h2 class="section-title" id="detail-completed-label">Completed</h2>
+        <ul class="rows" id="detail-completed-rows"></ul>
+        <div class="section-foot" id="detail-completed-foot"></div>
+      </div>
+
+      <div class="section-foot" id="detail-status"></div>
+
+      <!-- persistent: relocated under the row being edited, parked here otherwise -->
+      <div id="editor-home" hidden>
+        <form class="editor" id="form-edit-item" hidden>
+          <label class="field-label" for="edit-item-title">Title</label>
+          <input class="field" id="edit-item-title" type="text" maxlength="200" required autocomplete="off"
+            autocapitalize="sentences">
+          <label class="field-label" for="edit-item-notes">Notes</label>
+          <textarea class="field" id="edit-item-notes" rows="2" maxlength="500" autocapitalize="sentences"></textarea>
+          <div class="editor-grid">
+            <div>
+              <label class="field-label" for="edit-item-priority">Priority</label>
+              <select class="field" id="edit-item-priority">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="VeryHigh">Very high</option>
+              </select>
+            </div>
+            <div>
+              <!-- No clear control: the API cannot unset dueAt, so we don't offer it. -->
+              <label class="field-label" for="edit-item-due">Due date</label>
+              <input class="field" id="edit-item-due" type="date">
+            </div>
+          </div>
+          <div class="editor-actions">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <button class="btn btn-ghost" type="button" data-action="cancel-item-edit">Cancel</button>
+            <button class="btn btn-danger-text" type="button" data-action="delete-item">Delete</button>
+          </div>
+        </form>
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="composerbar" id="composerbar">
+    <form class="composer" id="form-new-list" hidden>
+      <label class="sr-only" for="new-list-title">New list title</label>
+      <input class="composer-input" id="new-list-title" type="text" placeholder="New list&#8230;" maxlength="200"
+        required autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
+      <button class="btn btn-primary" type="submit">Add</button>
+    </form>
+    <form class="composer" id="form-new-item" hidden>
+      <label class="sr-only" for="new-item-title">New item title</label>
+      <input class="composer-input" id="new-item-title" type="text" placeholder="Add an item&#8230;" maxlength="200"
+        required autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
+      <button class="btn btn-primary" type="submit">Add</button>
+    </form>
+  </footer>
+
+  <!-- Appended to / removed from individually: rebuilding it would drop announcements. -->
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <dialog class="dialog" id="confirm">
+    <form method="dialog">
+      <h2 class="dialog-title" id="confirm-title">Are you sure?</h2>
+      <p class="dialog-body" id="confirm-body"></p>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" type="submit" value="cancel">Cancel</button>
+        <button class="btn btn-danger" type="submit" value="confirm" id="confirm-ok">Delete</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+
+</html>
