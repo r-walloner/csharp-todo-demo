@@ -102,6 +102,9 @@ public class TodoItemsController(TodoDbContext db, ILogger<TodoItemsController> 
         db.TodoItems.Add(item);
         await db.SaveChangesAsync(cancellationToken);
 
+        logger.LogDebug("Created new todo item titled '{Title}' with ID {Id} in list {ListId}",
+            item.Title, item.Id, item.TodoListId);
+
         return CreatedAtAction(
             nameof(GetTodoItem),
             new { listId = item.TodoListId, id = item.Id },
@@ -146,6 +149,8 @@ public class TodoItemsController(TodoDbContext db, ILogger<TodoItemsController> 
 
         await db.SaveChangesAsync(cancellationToken);
 
+        logger.LogDebug("Updated todo item with ID {Id}", item.Id);
+
         return NoContent();
     }
 
@@ -169,6 +174,8 @@ public class TodoItemsController(TodoDbContext db, ILogger<TodoItemsController> 
 
         db.TodoItems.Remove(item);
         await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogDebug("Deleted todo item with ID {Id}", item.Id);
 
         return NoContent();
     }
