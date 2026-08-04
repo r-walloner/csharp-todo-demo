@@ -112,7 +112,7 @@ public class TodoListsController(TodoDbContext db, ILogger<TodoListsController> 
             return NotFound();
         }
 
-        if (request.Title is not null)
+        if (request.Title is not null && !request.Title.IsWhiteSpace())
             todoList.Title = request.Title;
         if (request.Description is not null)
             todoList.Description = request.Description;
