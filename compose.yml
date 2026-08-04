@@ -11,6 +11,7 @@ services:
       PORT: 5000 # The port the app listens to within the container
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__TodoDb: "Host=db;Port=5432;Database=tododb;Username=todo;Password=todo"
+      Logging__LogLevel__TodoDemo: "Debug"
     ports:
       - "8080:5000"
     healthcheck:
