@@ -31,7 +31,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production # migrations always run in production mode
       ConnectionStrings__TodoDb: "Host=db;Port=5432;Database=tododb;Username=todo;Password=todo"
-    command: ["dotnet", "TodoDemo.dll", "--migrate"]
+    command: ["--migrate"]
     restart: "no" # one-shot container, don't restart
 
   db:
