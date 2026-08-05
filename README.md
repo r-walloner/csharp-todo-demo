@@ -120,3 +120,28 @@ So a slow migration either delays readiness or races traffic, and multiple insta
 Doable, not clean.
 - Run the migrations from the GitHub Actions workflow by connecting the runner to the DBs private network through a VPN.
 For now, this is the cleanest solution in my opinion. 
+
+
+### Automated deployment using OpenTofu
+
+The infrastructure is managed through OpenTofu (formerly Terraform).
+The Infrastructure-as-Code specification is in the `infra/` directory.
+The infrastructure is split into two deployment environments: `staging` and `production`, and a third `shared` environment.
+
+- `shared` provisions all resources that are shared between staging and production: the database instance, the private network attached to it, and the container registry.
+- `staging` and `production` both provision their own instances of the app consisting of the serverless app container, a logical database on the shared DB instance, and a user with isolated permissions for that logical database.
+
+To apply the infrastructure, run the following commands from the root of the repository:
+```bash
+cd infra/environments/shared
+tofu init
+tofu apply
+
+cd ../staging
+tofu init
+tofu apply
+
+cd ../production
+tofu init
+tofu apply
+```
