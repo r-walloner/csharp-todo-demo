@@ -480,3 +480,44 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+##
+## OpenTofu / Terraform
+##
+
+# Local .terraform directories (downloaded providers/modules cache)
+**/.terraform/*
+
+# NOTE: do NOT ignore .terraform.lock.hcl — it should be committed.
+# It pins provider versions/checksums, the same way a lock file pins
+# package versions; omitting it lets provider versions drift silently.
+
+# State files — contain resource attributes and can contain secrets in plain text.
+# State lives remotely (Scaleway Object Storage) per infra/environments/*/main.tf,
+# so these should never legitimately show up locally, but ignore them just in case.
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files can contain secrets — ignore by default.
+# If you add a checked-in defaults file, negate it explicitly, e.g.:
+#   !example.tfvars
+*.tfvars
+*.tfvars.json
+
+# Local CLI config that can contain credentials
+.terraformrc
+terraform.rc
+
+# Plan output files (may contain sensitive values, and are a point-in-time artifact anyway)
+*.tfplan
+*tfplan*
+
+# Override files are for local, uncommitted overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
