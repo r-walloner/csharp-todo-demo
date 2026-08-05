@@ -53,7 +53,7 @@ TODO: Connect with TSL certificate verification. The certificate can be download
 2. Attach private network to the database
 note the IP configuration
 
-Restrict access to the private network only by removing the `0.0.0.0/0` rule from the allowed IPs.
+Restrict access to the private network only by removing the public endpoint of the database.
 
 2. Create a container registry or use an existing one
 - Sign into the registry on local machine using existing or new API token
@@ -98,3 +98,25 @@ TODO: tune maximum pool size based on scaleway manages PostgreSQL instance
 Attach to the same private network as the database. Make sure to use the private IP of the database in the connection string.
 
 Configure health check to use the `/health/ready` HTTP endpoint.
+
+5. Create serverless Job for migrations
+Create a new Job in the same namespace as the container.
+
+Set the `--migrate` argument in the `CMD` field (not in `ENTRYPOINT`).
+
+TODO: fine-tune resources based on measured load
+
+Same environment variables and secrets as the container, plus `--migrate` as the command.
+Serverless Jobs are already integrated with Scaleway Secret manager.
+-> Create Secret Opaque secret with the connection string in the secret manager first, then reference it in the job.
+
+**PROBLEM:** Serverless Jobs do not yet support being attached to a private network.
+The feature is requested but not yet available.
+For now, I see three options:
+- Add a public endpoint to the DB and restrict it to Scaleways IP ranges to allow the job to connect.
+- Run the migrations from the main app container.
+But it fights the platform: Scaleways readiness signal is the application binding to the port within the container
+So a slow migration either delays readiness or races traffic, and multiple instances could migrate concurrently. We'd need min-scale/max-scale pinned to 1 during deploys.
+Doable, not clean.
+- Run the migrations from the GitHub Actions workflow by connecting the runner to the DBs private network through a VPN.
+For now, this is the cleanest solution in my opinion. 
