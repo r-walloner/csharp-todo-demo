@@ -40,8 +40,6 @@ module "app" {
     registry_endpoint = data.terraform_remote_state.shared.outputs.registry_endpoint
     image_tag = var.image_tag
     db_instance_id = data.terraform_remote_state.shared.outputs.db_instance_id
-    db_ip = data.terraform_remote_state.shared.outputs.db_ip
-    db_port = data.terraform_remote_state.shared.outputs.db_port
     db_name = "robin_todo_demo_staging"
     db_user = "robin_todo_demo_staging_user"
     db_password = var.db_password

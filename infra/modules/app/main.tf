@@ -1,3 +1,8 @@
+data "scaleway_rdb_instance" "shared" {
+  # Reference the shared RDB instance
+  instance_id = var.db_instance_id
+}
+
 resource "scaleway_container_namespace" "main" {
   name = "robin-todo-demo-${var.environment}"
 }
@@ -17,7 +22,7 @@ resource "scaleway_container" "app" {
     "ASPNETCORE_ENVIRONMENT" = "Production" # TODO: maybe make this configurable per environment
   }
   secret_environment_variables = {
-    "ConnectionStrings__TodoDb" = "Host=${var.db_ip};Port=${var.db_port};Database=${var.db_name};Username=${var.db_user};Password=${var.db_password};SSL Mode=Require;Maximum Pool Size=10"
+    "ConnectionStrings__TodoDb" = "Host=${data.scaleway_rdb_instance.shared.private_network[0].ip};Port=${data.scaleway_rdb_instance.shared.private_network[0].port};Database=${var.db_name};Username=${var.db_user};Password=${var.db_password};SSL Mode=Require;Maximum Pool Size=10"
   }
 
   private_network_id = var.vpc_private_network_id
@@ -33,19 +38,19 @@ resource "scaleway_container" "app" {
 }
 
 resource "scaleway_rdb_database" "main" {
-  instance_id = var.db_instance_id
+  instance_id = data.scaleway_rdb_instance.shared.id
   name = var.db_name # TODO: generate the name automatically from the environment name
 }
 
 resource "scaleway_rdb_user" "main" {
-  instance_id = var.db_instance_id
+  instance_id = data.scaleway_rdb_instance.shared.id
   name = var.db_user # TODO: generate the name automatically from the environment name
   password = var.db_password # TODO: security best practice: use password_wo and password_wo_version to avoid string password in state file (see https://search.opentofu.org/provider/hashicorp/scaleway/latest/docs/resources/rdb_user)
   is_admin = false
 }
 
 resource "scaleway_rdb_privilege" "main" {
-  instance_id = var.db_instance_id
+  instance_id = data.scaleway_rdb_instance.shared.id
   database_name = scaleway_rdb_database.main.name
   user_name = scaleway_rdb_user.main.name
   permission = "all"

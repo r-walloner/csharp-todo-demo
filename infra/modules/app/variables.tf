@@ -23,16 +23,6 @@ variable "db_instance_id" {
   type        = string
 }
 
-variable "db_ip" {
-  description = "Private IP of the shared DB instance (from infra/environments/shared's outputs)."
-  type        = string
-}
-
-variable "db_port" {
-  description = "Port of the shared DB instance (from infra/environments/shared's outputs)."
-  type        = number
-}
-
 variable "db_name" {
   description = "Name of this environment's logical database on the shared instance."
   type        = string
