@@ -1,7 +1,20 @@
-data "scaleway_rdb_instance" "shared" {
-  # Reference the shared RDB instance
-  instance_id = var.db_instance_id
+
+# ---- Shared resources from infra/environments/shared ----
+
+data "scaleway_registry_namespace" "shared" {
+  namespace_id = var.registry_namespace_id
 }
+
+data "scaleway_vpc_private_network" "shared" {
+  private_network_id = var.vpc_private_network_id
+}
+
+data "scaleway_rdb_instance" "shared" {
+  instance_id = var.rdb_instance_id
+}
+
+
+# ---- Per-environment resources ----
 
 resource "scaleway_container_namespace" "main" {
   name = "robin-todo-demo-${var.environment}"
@@ -10,7 +23,7 @@ resource "scaleway_container_namespace" "main" {
 resource "scaleway_container" "app" {
   name = "robin-todo-demo-${var.environment}-app"
   namespace_id = scaleway_container_namespace.main.id
-  image = "${var.registry_endpoint}/todo-demo:${var.image_tag}"
+  image = "${data.scaleway_registry_namespace.shared.endpoint}/todo-demo:${var.image_tag}"
   port = 5000 # Internal porth within the container
   privacy = "public"
   cpu_limit = 100 # mVCPU
@@ -25,7 +38,7 @@ resource "scaleway_container" "app" {
     "ConnectionStrings__TodoDb" = "Host=${data.scaleway_rdb_instance.shared.private_network[0].ip};Port=${data.scaleway_rdb_instance.shared.private_network[0].port};Database=${var.db_name};Username=${var.db_user};Password=${var.db_password};SSL Mode=Require;Maximum Pool Size=10"
   }
 
-  private_network_id = var.vpc_private_network_id
+  private_network_id = data.scaleway_vpc_private_network.shared.id
 
   liveness_probe {
     http {

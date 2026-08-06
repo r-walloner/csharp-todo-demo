@@ -1,6 +1,3 @@
-# Containes the main terraform configuration for the project, and the resources that are shared
-# between the staging and production environments.
-
 terraform {
   required_providers {
     scaleway = { source = "scaleway/scaleway" }
@@ -26,6 +23,11 @@ resource "scaleway_account_ssh_key" "cd-runner-key" {
   public_key = var.cd_runner_public_ssh_key
 }
 
+resource "scaleway_registry_namespace" "main" {
+  name = "robin-todo-demo-cr"
+  is_public = false
+}
+
 resource "scaleway_vpc_private_network" "main" {
   name = "robin-todo-demo-net"
 }
@@ -40,9 +42,4 @@ resource "scaleway_rdb_instance" "main" {
   private_network {
     pn_id = scaleway_vpc_private_network.main.id
   }
-}
-
-resource "scaleway_registry_namespace" "main" {
-  name = "robin-todo-demo-cr"
-  is_public = false
 }

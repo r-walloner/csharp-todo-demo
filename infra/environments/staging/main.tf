@@ -35,12 +35,15 @@ provider "scaleway" {
 module "app" {
     source = "../../modules/app"
 
+    # Environment-specific variables
     environment = "staging"
-    vpc_private_network_id = data.terraform_remote_state.shared.outputs.vpc_private_network_id
-    registry_endpoint = data.terraform_remote_state.shared.outputs.registry_endpoint
     image_tag = var.image_tag
-    db_instance_id = data.terraform_remote_state.shared.outputs.db_instance_id
     db_name = "robin_todo_demo_staging"
     db_user = "robin_todo_demo_staging_user"
     db_password = var.db_password
+
+    # Shared resources from infra/environments/shared
+    registry_namespace_id = data.terraform_remote_state.shared.outputs.registry_namespace_id
+    vpc_private_network_id = data.terraform_remote_state.shared.outputs.vpc_private_network_id
+    rdb_instance_id = data.terraform_remote_state.shared.outputs.rdb_instance_id
 }
