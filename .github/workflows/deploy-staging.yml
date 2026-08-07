@@ -124,6 +124,7 @@ jobs:
       - name: Run database migrations
         env:
           BASTION_SSH_PRIVATE_KEY_FILE: ${{ runner.temp }}/bastion_ssh_private_key
+          GATEWAY_TAG: ci-ephemeral-bastion-staging
           SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_ORGANIZATION_ID }}
           SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
           SCW_PRIVATE_NETWORK_ID: ${{ steps.infra_state.outputs.vpc_private_network_id }}
