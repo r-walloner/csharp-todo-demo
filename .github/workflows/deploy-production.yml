@@ -1,0 +1,194 @@
+name: Deploy to production
+
+on:
+  release:
+    types: [released]
+    # `released` fires only on final releases, not on pre-releases or draft releases.
+
+concurrency:
+  # Only allow one deployment to run at a time!
+  # Don't cancel in-progress deployments, as this can lead to broken deployments if a new
+  # deployment is triggered while the previous one is still in progress.
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  # Least privilege principle
+  contents: read
+
+env:
+  SCW_ZONE: fr-par-1
+  REGISTRY: rg.fr-par.scw.cloud
+  REGISTRY_NAMESPACE: robin-todo-demo-cr
+  IMAGE_NAME: todo-demo
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      # TODO: De-duplicate DB_ variables with the ones in infra/. They have to stay in sync!
+      DB_NAME: robin_todo_demo_production
+      DB_USER: robin_todo_demo_production_user
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_ORGANIZATION_ID: ${{ vars.SCW_ORGANIZATION_ID }}
+      SCW_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
+      # "AWS" credentials used by OpenTofu's S3 state backend. They are only named AWS_* since
+      # thats the convention OpenTofu uses, but they are actually Scaleway credentials.
+      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0 # Full history so the ancestry check below can see origin/main.
+
+      - name: Resolve and validate the version
+        # Makes sure the release tag is a valid semantic version number, and computes the staging
+        # image tag from the commit hash. The staging image tag is used to ensure that the
+        # image that was tested in staging is the exact same image that is deployed to production.
+        # We also verify that the tagged commit is on the main branch to prohibit releasing code
+        # that was never merged.
+        id: version
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Release tag '${VERSION}' is not a vMAJOR.MINOR.PATCH version."
+            exit 1
+          fi
+          commit="$(git rev-parse HEAD)"
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::Release ${VERSION} points at a commit that is not on main."
+            exit 1
+          fi
+          {
+            echo "version=${VERSION}"
+            echo "commit=${commit}"
+            echo "staging_tag=sha-${commit:0:7}"
+          } | tee -a "$GITHUB_OUTPUT"
+          echo "Releasing ${commit} as ${VERSION}"
+
+      - name: Login to Scaleway container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: nologin # This is Scaleway's convention.
+          password: ${{ secrets.SCW_SECRET_KEY }}
+
+      - name: Promote staging image to release version
+        # Nothing is rebuilt here. We take the existing image that was deployed to staging and tag
+        # it with the release version. This ensures that the exact same image that was tested will
+        # be deployed to production.
+        env:
+          SOURCE: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.staging_tag }}
+          TARGET: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+        run: |
+          if ! docker buildx imagetools inspect "$SOURCE" >/dev/null 2>&1; then
+            echo "::error::No image ${SOURCE} in the registry. Only previously deployed staging images can be promoted to production."
+            exit 1
+          fi
+          docker buildx imagetools create --tag "$TARGET" "$SOURCE"
+          docker buildx imagetools inspect "$TARGET"
+
+      - name: Set up Scaleway CLI
+        uses: scaleway/action-scw@v0
+        with:
+          version: v2.60.0
+          access-key: ${{ secrets.SCW_ACCESS_KEY }}
+          secret-key: ${{ secrets.SCW_SECRET_KEY }}
+          default-organization-id: ${{ vars.SCW_ORGANIZATION_ID }}
+          default-project-id: ${{ vars.SCW_PROJECT_ID }}
+          save-config: false # Dont save config. Later steps use environment variables to authenticate
+          export-config: false
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+
+      - name: Read infrastructure state
+        id: infra_state
+        run: |
+          tofu -chdir=infra/environments/shared init -input=false
+          {
+            pn_id=$(tofu -chdir=infra/environments/shared output -raw vpc_private_network_id)
+            pn_id=${pn_id##*/} # tofu outputs the <region>/<uuid> format, but scw CLI wants just the uuid
+            echo "vpc_private_network_id=$pn_id"
+            echo "rdb_instance_private_ip=$(tofu -chdir=infra/environments/shared output -raw rdb_instance_private_ip)"
+            echo "rdb_instance_private_port=$(tofu -chdir=infra/environments/shared output -raw rdb_instance_private_port)"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Set up bastion SSH key
+        env:
+          BASTION_SSH_PRIVATE_KEY: ${{ secrets.BASTION_SSH_PRIVATE_KEY }}
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/bastion_ssh_private_key"
+          printf '%s\n' "$BASTION_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/bastion_ssh_private_key"
+          echo "Bastion SSH key installed to $RUNNER_TEMP/bastion_ssh_private_key"
+          echo "Fingerprints:"
+          ssh-keygen -lf "$RUNNER_TEMP/bastion_ssh_private_key" -E sha256
+          ssh-keygen -lf "$RUNNER_TEMP/bastion_ssh_private_key" -E md5
+
+      - name: Ensure database and user match configuration
+        # The migration below connects as this user, so the database, user and password must already
+        # exist and match config but the full apply that applies them only runs after the migration.
+        # This workaround can be removed once migration runs on Scaleway Serverless Jobs.
+        env:
+          TF_VAR_image_tag: ${{ steps.version.outputs.version }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: |
+          tofu -chdir=infra/environments/production init -input=false
+          tofu -chdir=infra/environments/production apply -auto-approve -input=false \
+            -target=module.app.scaleway_rdb_database.main \
+            -target=module.app.scaleway_rdb_user.main \
+            -target=module.app.scaleway_rdb_privilege.main
+
+      - name: Run database migrations
+        env:
+          BASTION_SSH_PRIVATE_KEY_FILE: ${{ runner.temp }}/bastion_ssh_private_key
+          SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_ORGANIZATION_ID }}
+          SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
+          SCW_PRIVATE_NETWORK_ID: ${{ steps.infra_state.outputs.vpc_private_network_id }}
+          DB_PRIVATE_IP: ${{ steps.infra_state.outputs.rdb_instance_private_ip }}
+          DB_PORT: ${{ steps.infra_state.outputs.rdb_instance_private_port }}
+          LOCAL_PORT: 15432
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+        run: |
+          chmod +x .github/scripts/with-bastion-tunnel.sh
+          .github/scripts/with-bastion-tunnel.sh -- \
+            docker run --rm --network=host \
+              -e ASPNETCORE_ENVIRONMENT=Production \
+              -e ConnectionStrings__TodoDb="Host=127.0.0.1;Port=${LOCAL_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};SSL Mode=Require;Maximum Pool Size=10" \
+              "$IMAGE" --migrate
+
+      - name: Deploy new image
+        env:
+          TF_VAR_image_tag: ${{ steps.version.outputs.version }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        # TODO perhaps we should add a manual approval step before applying infra changes?
+        # How could this work?
+        run: |
+          echo "Deploying image with tag ${TF_VAR_image_tag}"
+          tofu -chdir=infra/environments/production init -input=false
+          tofu -chdir=infra/environments/production apply -auto-approve -input=false
+          echo "Deployment complete"
+
+      - name: Verify deployment is healthy
+        env:
+          TIMEOUT: 10 # seconds per attempt
+          RETRIES: 30 # number of attempts for polling the health endpoint
+        run: |
+          endpoint="$(tofu -chdir=infra/environments/production output -raw app_container_public_endpoint)"
+          url="${endpoint}/health/ready"
+          echo "Polling ${url}"
+          for attempt in $(seq 1 $RETRIES); do
+            if curl -fsS --max-time $TIMEOUT "$url" >/dev/null; then
+              echo "Healthy after ${attempt} attempt(s)."
+              exit 0
+            fi
+            sleep $TIMEOUT
+          done
+          echo "::error::${url} did not become healthy within $((TIMEOUT * RETRIES)) seconds"
+          exit 1
