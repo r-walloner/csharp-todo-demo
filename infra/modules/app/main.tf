@@ -42,11 +42,11 @@ resource "scaleway_container" "app" {
 
   liveness_probe {
     http {
-      path = "/health/ready"
+      path = "/health/live"
     }
-    interval = "5s"
-    timeout = "1s"
-    failure_threshold = 3
+    interval = "10s"
+    timeout = "5s"
+    failure_threshold = 30
   }
 }
 
