@@ -60,9 +60,9 @@ function render() {
   // No point offering "add an item" for a list that failed to load.
   formNewItem.hidden = !isDetail || state.detail.status === 'error';
 
-  const title = isDetail ? (state.detail.list?.title ?? 'List') : 'Todos';
+  const title = isDetail ? (state.detail.list?.title ?? 'List') : 'Todos v2';
   appTitle.textContent = title;
-  document.title = isDetail ? `${title} · Todos` : 'Todos';
+  document.title = isDetail ? `${title} · Todos v2` : 'Todos v2';
 
   if (isDetail) detail.render();
   else lists.render();
