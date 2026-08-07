@@ -156,7 +156,7 @@ jobs:
           RETRIES: 30 # number of attempts for polling the health endpoint
         run: |
           endpoint="$(tofu -chdir=infra/environments/staging output -raw app_container_public_endpoint)"
-          url="https://${endpoint}/health/ready"
+          url="${endpoint}/health/ready"
           echo "Polling ${url}"
           for attempt in $(seq 1 $RETRIES); do
             if curl -fsS --max-time $TIMEOUT "$url" >/dev/null; then
