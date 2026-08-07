@@ -47,7 +47,7 @@ jobs:
 
       - name: Compute image tag
         id: image_tag
-        run: echo "tag=sha-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+        run: echo "tag=sha-${GITHUB_SHA:0:7}" | tee -a "$GITHUB_OUTPUT"
 
       - name: Login to Scaleway container registry
         uses: docker/login-action@v4
@@ -92,7 +92,7 @@ jobs:
             echo "vpc_private_network_id=$(tofu -chdir=infra/environments/shared output -raw vpc_private_network_id)"
             echo "rdb_instance_private_ip=$(tofu -chdir=infra/environments/shared output -raw rdb_instance_private_ip)"
             echo "rdb_instance_private_port=$(tofu -chdir=infra/environments/shared output -raw rdb_instance_private_port)"
-          } >> "$GITHUB_OUTPUT"
+          } | tee -a "$GITHUB_OUTPUT"
 
       - name: Set up bastion SSH key
         env:
@@ -100,6 +100,7 @@ jobs:
         run: |
           install -m 600 /dev/null "$RUNNER_TEMP/bastion_ssh_private_key"
           printf '%s\n' "$BASTION_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/bastion_ssh_private_key"
+          echo "Bastion SSH key installed to $RUNNER_TEMP/bastion_ssh_private_key"
 
       - name: Run database migrations
         env:
@@ -125,8 +126,10 @@ jobs:
         # TODO perhaps we should add a manual approval step before applying infra changes?
         # How could this work?
         run: |
+          echo "Deploying image with tag $TF_VAR_image_tag"
           tofu -chdir=infra/environments/staging init -input=false
           tofu -chdir=infra/environments/staging apply -auto-approve -input=false
+          echo "Deployment complete"
 
       - name: Verify deployment is healthy
         env:
