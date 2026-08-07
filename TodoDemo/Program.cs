@@ -36,7 +36,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
-// TODO: Currently we only require the connection to the DB to succeed for the app to be considered ready.
+// TODO: Currently, we only require the connection to the DB to succeed for the app to be considered ready.
 // We should also add a check for the migrations to be up to date to avoid running against an outdated schema.
 builder.Services.AddHealthChecks().AddDbContextCheck<TodoDbContext>(name: "database", tags: ["ready"]);
 
