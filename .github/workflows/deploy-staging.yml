@@ -78,8 +78,8 @@ jobs:
           secret-key: ${{ secrets.SCW_SECRET_KEY }}
           default-organization-id: ${{ vars.SCW_ORGANIZATION_ID }}
           default-project-id: ${{ vars.SCW_PROJECT_ID }}
-          save-config: true
-          export-config: true
+          save-config: false # Dont save config. Later steps use environment variables to authenticate
+          export-config: false
 
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@v2
