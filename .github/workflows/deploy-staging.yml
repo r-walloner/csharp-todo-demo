@@ -145,7 +145,7 @@ jobs:
         # TODO perhaps we should add a manual approval step before applying infra changes?
         # How could this work?
         run: |
-          echo "Deploying image with tag $TF_VAR_image_tag"
+          echo "Deploying image with tag ${TF_VAR_image_tag}"
           tofu -chdir=infra/environments/staging init -input=false
           tofu -chdir=infra/environments/staging apply -auto-approve -input=false
           echo "Deployment complete"
