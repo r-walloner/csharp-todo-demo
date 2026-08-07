@@ -26,14 +26,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 30
     env:
       # TODO: De-duplicate DB_ variables with the ones in infra/. They have to stay in sync!
       DB_NAME: robin_todo_demo_production
       DB_USER: robin_todo_demo_production_user
       SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
       SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-      SCW_ORGANIZATION_ID: ${{ vars.SCW_ORGANIZATION_ID }}
-      SCW_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
+      SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_ORGANIZATION_ID }}
+      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
       # "AWS" credentials used by OpenTofu's S3 state backend. They are only named AWS_* since
       # thats the convention OpenTofu uses, but they are actually Scaleway credentials.
       AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
@@ -148,8 +149,6 @@ jobs:
         env:
           BASTION_SSH_PRIVATE_KEY_FILE: ${{ runner.temp }}/bastion_ssh_private_key
           GATEWAY_TAG: ci-ephemeral-bastion-production
-          SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_ORGANIZATION_ID }}
-          SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
           SCW_PRIVATE_NETWORK_ID: ${{ steps.infra_state.outputs.vpc_private_network_id }}
           DB_PRIVATE_IP: ${{ steps.infra_state.outputs.rdb_instance_private_ip }}
           DB_PORT: ${{ steps.infra_state.outputs.rdb_instance_private_port }}
