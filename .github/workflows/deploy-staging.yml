@@ -103,6 +103,9 @@ jobs:
           install -m 600 /dev/null "$RUNNER_TEMP/bastion_ssh_private_key"
           printf '%s\n' "$BASTION_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/bastion_ssh_private_key"
           echo "Bastion SSH key installed to $RUNNER_TEMP/bastion_ssh_private_key"
+          echo "Fingerprints:"
+          ssh-keygen -lf "$RUNNER_TEMP/bastion_ssh_private_key" -E sha256
+          ssh-keygen -lf "$RUNNER_TEMP/bastion_ssh_private_key" -E md5
 
       - name: Run database migrations
         env:
