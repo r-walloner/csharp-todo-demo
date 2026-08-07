@@ -107,6 +107,20 @@ jobs:
           ssh-keygen -lf "$RUNNER_TEMP/bastion_ssh_private_key" -E sha256
           ssh-keygen -lf "$RUNNER_TEMP/bastion_ssh_private_key" -E md5
 
+      - name: Ensure database and user match configuration
+        # The migration below connects as this user, so the database, user and password must already
+        # exist and match config but the full apply that applies them only runs after the migration.
+        # This workaround can be removed once migration runs on Scaleway Serverless Jobs.
+        env:
+          TF_VAR_image_tag: ${{ steps.image_tag.outputs.tag }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: |
+          tofu -chdir=infra/environments/staging init -input=false
+          tofu -chdir=infra/environments/staging apply -auto-approve -input=false \
+            -target=module.app.scaleway_rdb_database.main \
+            -target=module.app.scaleway_rdb_user.main \
+            -target=module.app.scaleway_rdb_privilege.main
+
       - name: Run database migrations
         env:
           BASTION_SSH_PRIVATE_KEY_FILE: ${{ runner.temp }}/bastion_ssh_private_key
