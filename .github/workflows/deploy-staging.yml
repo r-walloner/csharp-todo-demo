@@ -89,7 +89,9 @@ jobs:
         run: |
           tofu -chdir=infra/environments/shared init -input=false
           {
-            echo "vpc_private_network_id=$(tofu -chdir=infra/environments/shared output -raw vpc_private_network_id)"
+            pn_id=$(tofu -chdir=infra/environments/shared output -raw vpc_private_network_id)
+            pn_id=${pn_id##*/} # tofu outputs the <region>/<uuid> format, but scw CLI wants just the uuid
+            echo "vpc_private_network_id=$pn_id"
             echo "rdb_instance_private_ip=$(tofu -chdir=infra/environments/shared output -raw rdb_instance_private_ip)"
             echo "rdb_instance_private_port=$(tofu -chdir=infra/environments/shared output -raw rdb_instance_private_port)"
           } | tee -a "$GITHUB_OUTPUT"
