@@ -111,8 +111,8 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           IMAGE: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.image_tag.outputs.tag }}
         run: |
-          chmod +x .github/workflows/scripts/with-bastion-tunnel.sh
-          .github/workflows/scripts/with-bastion-tunnel.sh -- \
+          chmod +x .github/scripts/with-bastion-tunnel.sh
+          .github/scripts/with-bastion-tunnel.sh -- \
             docker run --rm --network=host \
               -e ASPNETCORE_ENVIRONMENT=Staging \
               -e ConnectionStrings__TodoDb="Host=127.0.0.1;Port=${LOCAL_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};SSL Mode=Require;Maximum Pool Size=10" \
